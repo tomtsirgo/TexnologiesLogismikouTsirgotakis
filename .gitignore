@@ -1,0 +1,9 @@
+target/
+data/
+*.log
+.idea/
+*.iml
+
+# Personal presentation cheat sheet - not part of the project source
+LIVE_DEMO_SCRIPT.md
+LIVE_DEMO_SCRIPT.pdf

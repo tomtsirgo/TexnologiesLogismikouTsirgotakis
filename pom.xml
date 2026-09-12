@@ -1,0 +1,194 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <!-- Inherit from the Spring Boot parent POM: gives us curated dependency
+         management for every Spring library used below. -->
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.3.4</version>
+        <relativePath/>
+    </parent>
+
+    <groupId>gr.aegean</groupId>
+    <artifactId>cinema-management</artifactId>
+    <version>1.0.0</version>
+    <name>cinema-management</name>
+    <description>Backend RESTful cinema (film festival) program management system - 321-4002 Software Engineering Team Project</description>
+    <packaging>jar</packaging>
+
+    <properties>
+        <java.version>17</java.version>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <jacoco.version>0.8.12</jacoco.version>
+    </properties>
+
+    <dependencies>
+        <!-- REST controllers, Spring MVC, embedded Tomcat -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <!-- Spring Data JPA (Hibernate ORM) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-jpa</artifactId>
+        </dependency>
+
+        <!-- Bean Validation (jakarta.validation) for request DTOs -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
+        </dependency>
+
+        <!-- MySQL JDBC driver (runtime only - the mysql profile) -->
+        <dependency>
+            <groupId>com.mysql</groupId>
+            <artifactId>mysql-connector-j</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!-- H2 embedded database (runtime only - default profile uses file-mode H2,
+             the test profile uses in-memory H2). -->
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!-- ADDITIONAL DEPENDENCY beyond the M1 baseline list - see DECISIONS.md
+             for the justification (BCrypt password hashing only; NOT the full
+             spring-boot-starter-security framework - auth remains a hand-rolled
+             opaque UUID token interceptor). -->
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-crypto</artifactId>
+        </dependency>
+
+        <!-- ADDITIONAL DEPENDENCY beyond the M1 baseline list - see DECISIONS.md
+             for the justification (compile-time getter/setter/builder generation
+             only; no runtime footprint, excluded from the packaged jar below). -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- Testing: JUnit 5, Mockito, AssertJ, Spring Test -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <finalName>cinema-management</finalName>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <excludes>
+                        <exclude>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                        </exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
+
+            <!-- Enables -Dtest='*User*' style filters (ClassLoad wildcard matching
+                 is already the surefire default; declared explicitly so the
+                 version is pinned and predictable across milestones). -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <useSystemClassLoader>false</useSystemClassLoader>
+                </configuration>
+            </plugin>
+
+            <!-- JaCoCo: instruments tests (prepare-agent), produces the HTML/XML
+                 coverage report at the verify phase, and (M6) enforces a real
+                 build-breaking coverage floor via the jacoco-check execution below.
+                 Thresholds are picked in ASSUMPTIONS.md #45 to sit comfortably below
+                 the project's actual measured coverage (see PROJECT_STATE.md's M6
+                 row for the numbers), so `verify` fails only on a genuine
+                 regression, never on the current, already-passing codebase. No
+                 <excludes> are configured: every class in this project (including
+                 DTOs/enums/entities) is already fully or near-fully covered by the
+                 existing test suite, so excluding anything would not change what
+                 the gate measures - it would just be unnecessary. -->
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>${jacoco.version}</version>
+                <executions>
+                    <execution>
+                        <id>jacoco-prepare-agent</id>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>jacoco-report</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>jacoco-check</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <rule>
+                                    <element>BUNDLE</element>
+                                    <limits>
+                                        <!-- Actual measured (2026-09-12, 619 tests): 97.37%.
+                                             Threshold set to 90% - a real, meaningful floor
+                                             with ~7pt of margin, per ASSUMPTIONS.md #45. -->
+                                        <limit>
+                                            <counter>INSTRUCTION</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>0.90</minimum>
+                                        </limit>
+                                        <!-- Actual measured: 89.07%. Threshold 80% - branch
+                                             coverage is naturally the hardest metric to fill
+                                             (every state-machine/authorization guard branch),
+                                             so it gets the widest but still real margin. -->
+                                        <limit>
+                                            <counter>BRANCH</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>0.80</minimum>
+                                        </limit>
+                                        <!-- Actual measured: 97.83%. -->
+                                        <limit>
+                                            <counter>LINE</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>0.90</minimum>
+                                        </limit>
+                                    </limits>
+                                </rule>
+                            </rules>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+    <!-- NOTE: the MySQL-backed runtime configuration is a SPRING profile, not a
+         Maven profile - activate it with SPRING_PROFILES_ACTIVE=mysql (or
+         -Dspring-boot.run.profiles=mysql at boot time); see
+         src/main/resources/application-mysql.properties. No Maven <profiles>
+         section is needed for that. -->
+</project>
